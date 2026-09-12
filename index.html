@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#070a14" />
+    <title>Weight / week</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+      :root {
+        --ink: #e6fbff;
+        --muted: #7b9ca8;
+        --paper: #070a14;
+        --paper-deep: #0d1424;
+        --panel: rgba(10, 17, 32, 0.88);
+        --line: #1b3c4d;
+        --accent: #ff3cac;
+        --accent-dark: #ff73d0;
+        --cyan: #28efff;
+        --green: #b9ff7a;
+        --green-ink: #07190f;
+        --red: #ff5d8f;
+        --red-ink: #fff0f6;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.45), 0 0 34px rgba(40, 239, 255, 0.06);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        background: var(--paper);
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        font-family: 'DM Sans', 'Segoe UI', sans-serif;
+        background:
+          linear-gradient(rgba(40, 239, 255, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(40, 239, 255, 0.035) 1px, transparent 1px),
+          radial-gradient(circle at 88% 0%, rgba(255, 60, 172, 0.15), transparent 24rem),
+          radial-gradient(circle at 4% 88%, rgba(40, 239, 255, 0.11), transparent 22rem),
+          var(--paper);
+        background-size: 34px 34px, 34px 34px, auto, auto, auto;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .page-shell {
+        width: min(100%, 1180px);
+        margin: 0 auto;
+        padding: 30px clamp(16px, 5vw, 64px) 46px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 34px;
+        animation: rise-in 600ms ease both;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 12px;
+        color: var(--cyan);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        width: 24px;
+        height: 3px;
+        border-radius: 99px;
+        background: var(--cyan);
+        box-shadow: 0 0 12px rgba(40, 239, 255, 0.8);
+        content: '';
+      }
+
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 480px;
+        margin-bottom: 0;
+        font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+        font-size: clamp(2.2rem, 7vw, 4.65rem);
+        line-height: 0.95;
+        letter-spacing: -0.045em;
+        text-shadow: 0 0 28px rgba(40, 239, 255, 0.18);
+      }
+
+      .unit-mark {
+        display: inline-block;
+        margin-left: 0.08em;
+        color: var(--accent);
+        text-shadow: 0 0 18px rgba(255, 60, 172, 0.7);
+        font-size: 0.34em;
+        letter-spacing: 0;
+        vertical-align: top;
+      }
+
+      .intro {
+        max-width: 280px;
+        margin: 9px 0 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+
+      .mode-panel {
+        flex: 0 0 auto;
+        padding-top: 3px;
+      }
+
+      .mode-label {
+        display: block;
+        margin-bottom: 9px;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .mode-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        max-width: 340px;
+        padding: 5px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: rgba(8, 14, 27, 0.8);
+        box-shadow: inset 0 0 20px rgba(40, 239, 255, 0.04), 0 0 18px rgba(40, 239, 255, 0.04);
+      }
+
+      .mode-option {
+        position: relative;
+      }
+
+      .mode-option input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+      }
+
+      .mode-option label {
+        display: block;
+        padding: 9px 12px;
+        border-radius: 9px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+        transition: color 180ms ease, background 180ms ease, transform 180ms ease;
+      }
+
+      .mode-option label:hover {
+        color: var(--cyan);
+      }
+
+      .mode-option input:checked + label {
+        color: #07121d;
+        background: var(--cyan);
+        box-shadow: 0 0 16px rgba(40, 239, 255, 0.45);
+      }
+
+      .mode-option input:focus-visible + label {
+        outline: 3px solid rgba(40, 239, 255, 0.33);
+        outline-offset: 2px;
+      }
+
+      .tracker-panel {
+        overflow: hidden;
+        border: 1px solid rgba(40, 239, 255, 0.24);
+        border-radius: 14px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+        animation: rise-in 700ms 100ms ease both;
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 21px clamp(16px, 3vw, 30px) 17px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel-heading h2 {
+        margin-bottom: 4px;
+        font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+        font-size: 1.05rem;
+        letter-spacing: -0.02em;
+      }
+
+      .panel-heading p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .save-note {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 0.75rem;
+        white-space: nowrap;
+      }
+
+      .save-note::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--cyan);
+        box-shadow: 0 0 0 4px rgba(40, 239, 255, 0.12), 0 0 12px rgba(40, 239, 255, 0.8);
+        content: '';
+      }
+
+      .table-scroll {
+        overflow-x: auto;
+        padding: 0 clamp(10px, 2vw, 22px) 4px;
+        scrollbar-color: var(--accent) transparent;
+      }
+
+      table {
+        width: 100%;
+        min-width: 705px;
+        border-collapse: separate;
+        border-spacing: 0 9px;
+        table-layout: fixed;
+      }
+
+      th {
+        padding: 10px 5px 6px;
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-align: center;
+        text-transform: uppercase;
+      }
+
+      th:not(:last-child) {
+        width: 10.75%;
+      }
+
+      th:last-child {
+        width: 24.75%;
+        color: var(--accent);
+        text-shadow: 0 0 10px rgba(255, 60, 172, 0.45);
+      }
+
+      td {
+        padding: 0 4px;
+        text-align: center;
+      }
+
+      .weight-cell,
+      .average-cell {
+        min-height: 62px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+
+      .weight-cell {
+        display: flex;
+        width: 100%;
+        min-height: 62px;
+        align-items: center;
+        justify-content: center;
+        padding: 4px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        background: rgba(11, 24, 39, 0.78);
+        font-size: 0.88rem;
+        font-weight: 600;
+        transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease;
+      }
+
+      .weight-cell:hover {
+        z-index: 1;
+        border-color: var(--accent);
+        color: var(--cyan);
+        transform: translateY(-2px);
+        box-shadow: 0 0 16px rgba(40, 239, 255, 0.16);
+      }
+
+      .weight-cell:focus-visible {
+        outline: 3px solid rgba(40, 239, 255, 0.35);
+        outline-offset: 2px;
+      }
+
+      .weight-cell.has-value {
+        color: var(--ink);
+        background: rgba(18, 30, 48, 0.9);
+      }
+
+      .weight-cell.is-up,
+      .weight-cell.is-equal {
+        border-color: var(--green);
+        color: var(--green-ink);
+        background: var(--green);
+        box-shadow: 0 0 16px rgba(185, 255, 122, 0.24);
+      }
+
+      .weight-cell.is-down {
+        border-color: var(--red);
+        color: var(--red-ink);
+        background: var(--red);
+        box-shadow: 0 0 16px rgba(255, 93, 143, 0.24);
+      }
+
+      .weight-cell.is-up:hover,
+      .weight-cell.is-equal:hover,
+      .weight-cell.is-down:hover {
+        filter: saturate(1.08);
+      }
+
+      .average-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        border-color: rgba(255, 60, 172, 0.38);
+        color: var(--accent-dark);
+        background: rgba(255, 60, 172, 0.09);
+        box-shadow: inset 0 0 18px rgba(255, 60, 172, 0.04);
+        font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+        font-size: 0.94rem;
+        font-weight: 600;
+      }
+
+      .average-cell.empty {
+        color: var(--muted);
+        background: rgba(17, 29, 45, 0.5);
+        font-family: 'DM Sans', 'Segoe UI', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      tbody tr {
+        animation: row-in 420ms ease both;
+      }
+
+      tbody tr:nth-child(2) { animation-delay: 40ms; }
+      tbody tr:nth-child(3) { animation-delay: 80ms; }
+      tbody tr:nth-child(4) { animation-delay: 120ms; }
+      tbody tr:nth-child(5) { animation-delay: 160ms; }
+      tbody tr:nth-child(6) { animation-delay: 200ms; }
+
+      .panel-footer {
+        display: flex;
+        justify-content: center;
+        padding: 17px 20px 21px;
+        border-top: 1px solid var(--line);
+      }
+
+      .add-week {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 15px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--cyan);
+        background: transparent;
+        font-size: 0.8rem;
+        font-weight: 700;
+        transition: border-color 180ms ease, color 180ms ease, background 180ms ease, transform 180ms ease;
+      }
+
+      .add-week span {
+        display: inline-grid;
+        width: 20px;
+        height: 20px;
+        place-items: center;
+        border-radius: 50%;
+        color: #07121d;
+        background: var(--accent);
+        box-shadow: 0 0 14px rgba(255, 60, 172, 0.5);
+        font-size: 1rem;
+        line-height: 1;
+      }
+
+      .add-week:hover {
+        border-color: var(--accent);
+        background: rgba(255, 60, 172, 0.1);
+        box-shadow: 0 0 18px rgba(255, 60, 172, 0.16);
+        transform: translateY(-1px);
+      }
+
+      .hint {
+        margin: 16px auto 0;
+        color: var(--muted);
+        font-size: 0.72rem;
+        text-align: center;
+      }
+
+      dialog {
+        width: min(calc(100% - 32px), 380px);
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--ink);
+        background: #0b1424;
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 34px rgba(255, 60, 172, 0.16);
+      }
+
+      dialog::backdrop {
+        background: rgba(2, 5, 12, 0.72);
+        backdrop-filter: blur(6px);
+      }
+
+      .dialog-content {
+        padding: 24px;
+      }
+
+      .dialog-kicker {
+        margin-bottom: 7px;
+        color: var(--cyan);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      dialog h2 {
+        margin-bottom: 18px;
+        font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+        font-size: 1.45rem;
+        letter-spacing: -0.03em;
+      }
+
+      .input-label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 0.77rem;
+        font-weight: 600;
+      }
+
+      .weight-input {
+        width: 100%;
+        padding: 13px 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        outline: none;
+        color: var(--ink);
+        background: #070d1a;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .weight-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px rgba(255, 60, 172, 0.14), 0 0 18px rgba(255, 60, 172, 0.16);
+      }
+
+      .dialog-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .dialog-actions-right {
+        display: flex;
+        gap: 8px;
+      }
+
+      .dialog-actions button {
+        min-height: 39px;
+        padding: 8px 13px;
+        border-radius: 9px;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .clear-value,
+      .cancel-entry {
+        border: 1px solid transparent;
+        color: var(--muted);
+        background: transparent;
+      }
+
+      .clear-value:hover,
+      .cancel-entry:hover {
+        color: var(--red);
+        background: rgba(255, 93, 143, 0.1);
+      }
+
+      .save-entry {
+        border: 1px solid var(--accent);
+        color: #190817;
+        background: var(--accent);
+        box-shadow: 0 0 16px rgba(255, 60, 172, 0.3);
+      }
+
+      .save-entry:hover {
+        background: var(--accent-dark);
+        box-shadow: 0 0 22px rgba(255, 60, 172, 0.5);
+      }
+
+      @keyframes rise-in {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes row-in {
+        from { opacity: 0; transform: translateY(7px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @media (max-width: 720px) {
+        .page-shell {
+          padding-top: 22px;
+        }
+
+        table {
+          min-width: 0;
+        }
+
+        th {
+          padding-right: 2px;
+          padding-left: 2px;
+          font-size: 0.58rem;
+          line-height: 1.15;
+          overflow-wrap: anywhere;
+        }
+
+        td {
+          padding-right: 2px;
+          padding-left: 2px;
+        }
+
+        .weight-cell,
+        .average-cell {
+          min-height: 58px;
+        }
+
+        .weight-cell {
+          padding: 2px;
+          font-size: 0.68rem;
+        }
+
+        .average-cell {
+          padding: 3px;
+          font-size: 0.68rem;
+        }
+
+        .average-cell.empty {
+          font-size: 0.68rem;
+        }
+
+        .topbar {
+          display: block;
+          margin-bottom: 25px;
+        }
+
+        .mode-panel {
+          margin-top: 25px;
+        }
+
+        .mode-options {
+          max-width: none;
+        }
+
+        .mode-option {
+          flex: 1 1 0;
+        }
+
+        .mode-option label {
+          padding-right: 7px;
+          padding-left: 7px;
+          text-align: center;
+        }
+
+        .panel-heading {
+          align-items: flex-start;
+        }
+
+        .save-note {
+          margin-top: 3px;
+          font-size: 0;
+        }
+
+        .save-note::before {
+          width: 9px;
+          height: 9px;
+        }
+      }
+
+      @media (max-width: 390px) {
+        .page-shell {
+          padding-right: 10px;
+          padding-left: 10px;
+        }
+
+        h1 {
+          font-size: 2.55rem;
+        }
+
+        .panel-heading {
+          padding-right: 15px;
+          padding-left: 15px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">A quiet record</p>
+          <h1>weight <span class="unit-mark">/ kg</span></h1>
+          <p class="intro">A simple weekly view for noticing the shape of your numbers.</p>
+        </div>
+
+        <section class="mode-panel" aria-labelledby="mode-label">
+          <span id="mode-label" class="mode-label">Compare</span>
+          <div class="mode-options">
+            <div class="mode-option">
+              <input id="mode-none" type="radio" name="comparison" value="none" checked />
+              <label for="mode-none">None</label>
+            </div>
+            <div class="mode-option">
+              <input id="mode-day" type="radio" name="comparison" value="day" />
+              <label for="mode-day">Day to day</label>
+            </div>
+            <div class="mode-option">
+              <input id="mode-week" type="radio" name="comparison" value="week" />
+              <label for="mode-week">Day by week</label>
+            </div>
+          </div>
+        </section>
+      </header>
+
+      <section class="tracker-panel" aria-labelledby="tracker-title">
+        <div class="panel-heading">
+          <div>
+            <h2 id="tracker-title">Your weeks</h2>
+            <p>Tap any day to add or change a weight.</p>
+          </div>
+          <span class="save-note">Saved on this device</span>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Monday</th>
+                <th scope="col">Tuesday</th>
+                <th scope="col">Wednesday</th>
+                <th scope="col">Thursday</th>
+                <th scope="col">Friday</th>
+                <th scope="col">Saturday</th>
+                <th scope="col">Sunday</th>
+                <th scope="col">Weekly average</th>
+              </tr>
+            </thead>
+            <tbody id="tracker-body"></tbody>
+          </table>
+        </div>
+
+        <div class="panel-footer">
+          <button class="add-week" id="add-week" type="button"><span aria-hidden="true">+</span> Add another week</button>
+        </div>
+      </section>
+
+      <p class="hint">Blank days are left out of the weekly average.</p>
+    </main>
+
+    <dialog id="weight-dialog" aria-labelledby="dialog-title">
+      <form id="weight-form" method="dialog">
+        <div class="dialog-content">
+          <div class="dialog-kicker">Daily entry</div>
+          <h2 id="dialog-title">Add a weight</h2>
+          <label class="input-label" for="weight-input">Weight in kilograms</label>
+          <input class="weight-input" id="weight-input" name="weight" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" autocomplete="off" />
+          <div class="dialog-actions">
+            <button class="clear-value" id="clear-value" type="button">Clear value</button>
+            <div class="dialog-actions-right">
+              <button class="cancel-entry" id="cancel-entry" type="button">Cancel</button>
+              <button class="save-entry" type="submit">Save</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <script>
+      (() => {
+        const STORAGE_KEY = 'trckr-weight-data-v1';
+        const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const STARTING_WEEKS = 5;
+        const trackerBody = document.querySelector('#tracker-body');
+        const addWeekButton = document.querySelector('#add-week');
+        const dialog = document.querySelector('#weight-dialog');
+        const form = document.querySelector('#weight-form');
+        const weightInput = document.querySelector('#weight-input');
+        const dialogTitle = document.querySelector('#dialog-title');
+        const clearButton = document.querySelector('#clear-value');
+        const cancelButton = document.querySelector('#cancel-entry');
+        const comparisonInputs = document.querySelectorAll('input[name="comparison"]');
+
+        let state = loadState();
+        let activeEntry = null;
+
+        function emptyWeek() {
+          return Array(DAYS.length).fill(null);
+        }
+
+        function loadState() {
+          try {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (saved && Array.isArray(saved.weeks) && saved.weeks.length > 0) {
+              return {
+                weeks: saved.weeks.map((week) => DAYS.map((_, dayIndex) => normalizeValue(week?.[dayIndex]))),
+                mode: ['none', 'day', 'week'].includes(saved.mode) ? saved.mode : 'none',
+              };
+            }
+          } catch (error) {
+            // A fresh state keeps the page usable if storage is unavailable or malformed.
+          }
+
+          return {
+            weeks: Array.from({ length: STARTING_WEEKS }, emptyWeek),
+            mode: 'none',
+          };
+        }
+
+        function normalizeValue(value) {
+          if (value === null || value === '' || typeof value === 'undefined') {
+            return null;
+          }
+
+          const number = Number(value);
+          return Number.isFinite(number) && number >= 0 ? Math.round(number * 100) / 100 : null;
+        }
+
+        function saveState() {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function formatWeight(value) {
+          return Number(value).toFixed(2);
+        }
+
+        function getComparisonClass(weekIndex, dayIndex) {
+          if (state.mode === 'none' || state.weeks[weekIndex][dayIndex] === null) {
+            return '';
+          }
+
+          let previousValue = null;
+          if (state.mode === 'week' && weekIndex > 0) {
+            previousValue = state.weeks[weekIndex - 1][dayIndex];
+          } else if (state.mode === 'day') {
+            if (dayIndex > 0) {
+              previousValue = state.weeks[weekIndex][dayIndex - 1];
+            } else if (weekIndex > 0) {
+              previousValue = state.weeks[weekIndex - 1][DAYS.length - 1];
+            }
+          }
+
+          if (previousValue === null) {
+            return '';
+          }
+
+          return state.weeks[weekIndex][dayIndex] >= previousValue ? 'is-equal' : 'is-down';
+        }
+
+        function render() {
+          trackerBody.replaceChildren();
+
+          state.weeks.forEach((week, weekIndex) => {
+            const row = document.createElement('tr');
+
+            week.forEach((value, dayIndex) => {
+              const cell = document.createElement('td');
+              const button = document.createElement('button');
+              const comparisonClass = getComparisonClass(weekIndex, dayIndex);
+              button.type = 'button';
+              button.className = `weight-cell${value !== null ? ' has-value' : ''}${comparisonClass ? ` ${comparisonClass}` : ''}`;
+              button.dataset.week = weekIndex;
+              button.dataset.day = dayIndex;
+              button.setAttribute('aria-label', `${DAYS[dayIndex]}, week ${weekIndex + 1}: ${value === null ? 'empty' : `${formatWeight(value)} kilograms`}`);
+              button.textContent = value === null ? 'Add' : formatWeight(value);
+              button.addEventListener('click', openEditor);
+              cell.append(button);
+              row.append(cell);
+            });
+
+            const averageCell = document.createElement('td');
+            const average = week.filter((value) => value !== null);
+            const averageValue = average.length > 0 ? average.reduce((sum, value) => sum + value, 0) / average.length : null;
+            averageCell.className = `average-cell${averageValue === null ? ' empty' : ''}`;
+            averageCell.textContent = averageValue === null ? '—' : `${formatWeight(averageValue)} kg`;
+            averageCell.setAttribute('aria-label', averageValue === null ? 'No weekly average' : `Weekly average: ${formatWeight(averageValue)} kilograms`);
+            row.append(averageCell);
+            trackerBody.append(row);
+          });
+
+          comparisonInputs.forEach((input) => {
+            input.checked = input.value === state.mode;
+          });
+        }
+
+        function openEditor(event) {
+          activeEntry = {
+            weekIndex: Number(event.currentTarget.dataset.week),
+            dayIndex: Number(event.currentTarget.dataset.day),
+          };
+          const currentValue = state.weeks[activeEntry.weekIndex][activeEntry.dayIndex];
+          dialogTitle.textContent = `${DAYS[activeEntry.dayIndex]} · week ${activeEntry.weekIndex + 1}`;
+          weightInput.value = currentValue === null ? '' : formatWeight(currentValue);
+          dialog.showModal();
+          requestAnimationFrame(() => weightInput.focus());
+        }
+
+        function closeEditor() {
+          dialog.close();
+          activeEntry = null;
+        }
+
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          if (!activeEntry) {
+            return;
+          }
+
+          const rawValue = weightInput.value.trim();
+          const value = normalizeValue(rawValue);
+          if (rawValue !== '' && value === null) {
+            weightInput.setCustomValidity('Enter a positive number with up to two decimal places.');
+            weightInput.reportValidity();
+            return;
+          }
+
+          if (rawValue !== '' && !/^\d+(\.\d{1,2})?$/.test(rawValue)) {
+            weightInput.setCustomValidity('Use up to two decimal places.');
+            weightInput.reportValidity();
+            return;
+          }
+
+          weightInput.setCustomValidity('');
+          state.weeks[activeEntry.weekIndex][activeEntry.dayIndex] = value;
+          saveState();
+          closeEditor();
+          render();
+        });
+
+        weightInput.addEventListener('input', () => weightInput.setCustomValidity(''));
+
+        clearButton.addEventListener('click', () => {
+          if (!activeEntry) {
+            return;
+          }
+
+          state.weeks[activeEntry.weekIndex][activeEntry.dayIndex] = null;
+          saveState();
+          closeEditor();
+          render();
+        });
+
+        cancelButton.addEventListener('click', closeEditor);
+
+        dialog.addEventListener('click', (event) => {
+          if (event.target === dialog) {
+            closeEditor();
+          }
+        });
+
+        comparisonInputs.forEach((input) => {
+          input.addEventListener('change', () => {
+            state.mode = input.value;
+            saveState();
+            render();
+          });
+        });
+
+        addWeekButton.addEventListener('click', () => {
+          state.weeks.push(emptyWeek());
+          saveState();
+          render();
+          requestAnimationFrame(() => {
+            trackerBody.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          });
+        });
+
+        render();
+      })();
+    </script>
+  </body>
+</html>
