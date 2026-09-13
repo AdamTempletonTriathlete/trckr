@@ -97,7 +97,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 5px;
-        max-width: 340px;
+        max-width: 440px;
         padding: 5px;
         border: 1px solid var(--line);
         border-radius: 9px;
@@ -330,6 +330,88 @@
         border-top: 1px solid var(--line);
       }
 
+      .graph-view {
+        padding: 18px clamp(12px, 2vw, 24px) 22px;
+      }
+
+      .graph-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+
+      .graph-meta p {
+        margin-bottom: 0;
+      }
+
+      .graph-hint {
+        color: var(--accent-dark);
+        text-align: right;
+      }
+
+      .graph-frame {
+        display: grid;
+        grid-template-columns: 50px minmax(0, 1fr);
+        gap: 8px;
+        min-height: 330px;
+      }
+
+      .graph-y-axis {
+        position: relative;
+        height: 330px;
+        color: var(--muted);
+        font-size: 0.67rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .graph-y-axis span {
+        position: absolute;
+        right: 0;
+        transform: translateY(-50%);
+      }
+
+      .graph-scroll {
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border: 1px solid rgba(40, 239, 255, 0.2);
+        border-radius: 10px;
+        background: rgba(5, 12, 24, 0.72);
+        scrollbar-color: var(--accent) transparent;
+        scrollbar-gutter: stable;
+      }
+
+      .graph-scroll:focus-visible {
+        outline: 3px solid rgba(40, 239, 255, 0.3);
+        outline-offset: 2px;
+      }
+
+      .graph-canvas {
+        height: 330px;
+        min-width: 100%;
+      }
+
+      .graph-canvas svg {
+        display: block;
+        height: 330px;
+      }
+
+      .graph-empty {
+        margin: -195px 0 166px;
+        color: var(--muted);
+        font-size: 0.8rem;
+        text-align: center;
+        pointer-events: none;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
       .add-week {
         display: inline-flex;
         align-items: center;
@@ -547,6 +629,16 @@
           text-align: center;
         }
 
+        .graph-meta {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .graph-hint {
+          text-align: left;
+        }
+
         .panel-heading {
           align-items: flex-start;
         }
@@ -604,6 +696,10 @@
               <input id="mode-week" type="radio" name="comparison" value="week" />
               <label for="mode-week">Day by week</label>
             </div>
+            <div class="mode-option">
+              <input id="mode-graph" type="radio" name="comparison" value="graph" />
+              <label for="mode-graph">Line Graph</label>
+            </div>
           </div>
         </section>
       </header>
@@ -616,7 +712,7 @@
           <span class="save-note">Saved on this device</span>
         </div>
 
-        <div class="table-scroll">
+        <div class="table-scroll" id="table-view">
           <table>
             <thead>
               <tr>
@@ -632,6 +728,24 @@
             </thead>
             <tbody id="tracker-body"></tbody>
           </table>
+        </div>
+
+        <div class="graph-view" id="graph-view" hidden>
+          <div class="graph-meta">
+            <p id="graph-range">Two-week window</p>
+            <span class="graph-hint">Scroll horizontally to see earlier entries</span>
+          </div>
+          <div class="graph-frame">
+            <div class="graph-y-axis" id="graph-y-axis" aria-hidden="true"></div>
+            <div class="graph-scroll" id="graph-scroll" tabindex="0" role="region" aria-label="Weight line graph">
+              <div class="graph-canvas" id="graph-canvas">
+                <svg id="graph-svg" role="img" aria-labelledby="graph-title" height="330">
+                  <title id="graph-title">Recorded weight line graph</title>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <p class="graph-empty" id="graph-empty" hidden>No recorded values yet</p>
         </div>
 
         <div class="panel-footer">
@@ -665,6 +779,15 @@
         const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         const STARTING_WEEKS = 5;
         const trackerBody = document.querySelector('#tracker-body');
+        const tableView = document.querySelector('#table-view');
+        const graphView = document.querySelector('#graph-view');
+        const graphRange = document.querySelector('#graph-range');
+        const graphScroll = document.querySelector('#graph-scroll');
+        const graphCanvas = document.querySelector('#graph-canvas');
+        const graphSvg = document.querySelector('#graph-svg');
+        const graphYAxis = document.querySelector('#graph-y-axis');
+        const graphEmpty = document.querySelector('#graph-empty');
+        const panelFooter = document.querySelector('.panel-footer');
         const addWeekButton = document.querySelector('#add-week');
         const dialog = document.querySelector('#weight-dialog');
         const form = document.querySelector('#weight-form');
@@ -673,9 +796,15 @@
         const clearButton = document.querySelector('#clear-value');
         const cancelButton = document.querySelector('#cancel-entry');
         const comparisonInputs = document.querySelectorAll('input[name="comparison"]');
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+        const GRAPH_HEIGHT = 330;
+        const GRAPH_PLOT_TOP = 24;
+        const GRAPH_PLOT_BOTTOM = 274;
 
         let state = loadState();
         let activeEntry = null;
+        let lastRenderedMode = null;
+        let renderingGraph = false;
 
         function emptyWeek() {
           return Array(DAYS.length).fill(null);
@@ -687,7 +816,7 @@
             if (saved && Array.isArray(saved.weeks) && saved.weeks.length > 0) {
               return {
                 weeks: saved.weeks.map((week) => DAYS.map((_, dayIndex) => normalizeValue(week?.[dayIndex]))),
-                mode: ['none', 'day', 'week'].includes(saved.mode) ? saved.mode : 'none',
+                mode: ['none', 'day', 'week', 'graph'].includes(saved.mode) ? saved.mode : 'none',
               };
             }
           } catch (error) {
@@ -717,6 +846,151 @@
           return Number(value).toFixed(2);
         }
 
+        function createSvgElement(tagName, attributes = {}) {
+          const element = document.createElementNS(SVG_NS, tagName);
+          Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, value));
+          return element;
+        }
+
+        function getGraphData() {
+          let lastRecordedIndex = -1;
+
+          state.weeks.forEach((week, weekIndex) => {
+            week.forEach((value, dayIndex) => {
+              if (value !== null) {
+                lastRecordedIndex = weekIndex * DAYS.length + dayIndex;
+              }
+            });
+          });
+
+          const slotCount = Math.max(14, lastRecordedIndex + 1);
+          const values = Array.from({ length: slotCount }, (_, slotIndex) => {
+            const week = state.weeks[Math.floor(slotIndex / DAYS.length)];
+            return week?.[slotIndex % DAYS.length] ?? null;
+          });
+
+          return { values, hasRecordedValue: lastRecordedIndex >= 0 };
+        }
+
+        function renderGraph(focusLatest = false) {
+          const { values, hasRecordedValue } = getGraphData();
+          const viewportWidth = graphScroll.clientWidth || 700;
+          const slotWidth = viewportWidth / 14;
+          const chartWidth = Math.max(viewportWidth, values.length * slotWidth);
+          const previousScrollLeft = graphScroll.scrollLeft;
+
+          renderingGraph = true;
+          graphCanvas.style.width = `${chartWidth}px`;
+          graphSvg.setAttribute('width', chartWidth);
+          graphSvg.setAttribute('viewBox', `0 0 ${chartWidth} ${GRAPH_HEIGHT}`);
+
+          const targetScrollLeft = focusLatest ? graphScroll.scrollWidth : Math.min(previousScrollLeft, graphScroll.scrollWidth - viewportWidth);
+          if (targetScrollLeft !== graphScroll.scrollLeft) {
+            graphScroll.scrollLeft = Math.max(0, targetScrollLeft);
+          }
+
+          const visibleStart = Math.floor(graphScroll.scrollLeft / slotWidth);
+          const visibleEnd = Math.min(values.length - 1, Math.ceil((graphScroll.scrollLeft + viewportWidth) / slotWidth) - 1);
+          const visibleValues = values.slice(visibleStart, visibleEnd + 1).filter((value) => value !== null);
+          const minimum = visibleValues.length > 0 ? Math.min(...visibleValues) : 0;
+          const maximum = visibleValues.length > 0 ? Math.max(...visibleValues) : 1;
+          const difference = maximum - minimum;
+          const padding = difference === 0 ? Math.max(1, maximum * 0.08) : Math.max(0.01, difference * 0.12);
+          const domainMinimum = Math.max(0, minimum - padding);
+          const domainMaximum = maximum + padding || 1;
+          const domainRange = domainMaximum - domainMinimum || 1;
+          const yForValue = (value) => GRAPH_PLOT_BOTTOM - ((value - domainMinimum) / domainRange) * (GRAPH_PLOT_BOTTOM - GRAPH_PLOT_TOP);
+
+          graphSvg.replaceChildren(graphSvg.querySelector('title'));
+          for (let lineIndex = 0; lineIndex < 4; lineIndex += 1) {
+            const ratio = lineIndex / 3;
+            const y = GRAPH_PLOT_TOP + ratio * (GRAPH_PLOT_BOTTOM - GRAPH_PLOT_TOP);
+            graphSvg.append(createSvgElement('line', {
+              x1: 0,
+              y1: y,
+              x2: chartWidth,
+              y2: y,
+              stroke: 'rgba(123, 156, 168, 0.22)',
+              'stroke-width': 1,
+            }));
+          }
+
+          let segment = [];
+          const segments = [];
+          values.forEach((value, index) => {
+            if (value === null) {
+              if (segment.length > 0) {
+                segments.push(segment);
+                segment = [];
+              }
+              return;
+            }
+
+            segment.push(`${index * slotWidth + slotWidth / 2},${yForValue(value)}`);
+          });
+          if (segment.length > 0) {
+            segments.push(segment);
+          }
+
+          segments.forEach((points) => {
+            if (points.length > 1) {
+              graphSvg.append(createSvgElement('polyline', {
+                points: points.join(' '),
+                fill: 'none',
+                stroke: 'var(--cyan)',
+                'stroke-width': 3,
+                'stroke-linecap': 'round',
+                'stroke-linejoin': 'round',
+              }));
+            }
+          });
+
+          values.forEach((value, index) => {
+            const x = index * slotWidth + slotWidth / 2;
+            const label = `Week ${Math.floor(index / DAYS.length) + 1}, ${DAYS[index % DAYS.length]}`;
+            if (value !== null) {
+              const point = createSvgElement('circle', {
+                cx: x,
+                cy: yForValue(value),
+                r: 4,
+                fill: 'var(--accent)',
+                stroke: 'var(--paper-deep)',
+                'stroke-width': 2,
+              });
+              const pointTitle = createSvgElement('title');
+              pointTitle.textContent = `${label}: ${formatWeight(value)} kilograms`;
+              point.append(pointTitle);
+              graphSvg.append(point);
+            }
+
+            const xLabel = createSvgElement('text', {
+              x,
+              y: 305,
+              fill: 'var(--muted)',
+              'font-family': 'DM Sans, sans-serif',
+              'font-size': 10,
+              'text-anchor': 'middle',
+            });
+            xLabel.textContent = `W${Math.floor(index / DAYS.length) + 1} ${DAYS[index % DAYS.length].slice(0, 1)}`;
+            graphSvg.append(xLabel);
+          });
+
+          graphYAxis.replaceChildren();
+          for (let labelIndex = 0; labelIndex < 4; labelIndex += 1) {
+            const ratio = labelIndex / 3;
+            const label = document.createElement('span');
+            label.style.top = `${GRAPH_PLOT_TOP + ratio * (GRAPH_PLOT_BOTTOM - GRAPH_PLOT_TOP)}px`;
+            label.textContent = formatWeight(domainMaximum - ratio * domainRange);
+            graphYAxis.append(label);
+          }
+
+          graphRange.textContent = hasRecordedValue
+            ? `Weeks ${Math.floor(visibleStart / DAYS.length) + 1}-${Math.floor(visibleEnd / DAYS.length) + 1}`
+            : 'Two-week window';
+          graphEmpty.hidden = hasRecordedValue;
+          renderingGraph = false;
+        }
+
         function getComparisonClass(weekIndex, dayIndex) {
           if (state.mode === 'none' || state.weeks[weekIndex][dayIndex] === null) {
             return '';
@@ -741,6 +1015,11 @@
         }
 
         function render() {
+          const graphActive = state.mode === 'graph';
+          const enteringGraph = graphActive && lastRenderedMode !== 'graph';
+          tableView.hidden = graphActive;
+          graphView.hidden = !graphActive;
+          panelFooter.hidden = graphActive;
           trackerBody.replaceChildren();
 
           state.weeks.forEach((week, weekIndex) => {
@@ -774,6 +1053,11 @@
           comparisonInputs.forEach((input) => {
             input.checked = input.value === state.mode;
           });
+
+          if (graphActive) {
+            renderGraph(enteringGraph);
+          }
+          lastRenderedMode = state.mode;
         }
 
         function openEditor(event) {
@@ -847,6 +1131,18 @@
             saveState();
             render();
           });
+        });
+
+        graphScroll.addEventListener('scroll', () => {
+          if (state.mode === 'graph' && !renderingGraph) {
+            renderGraph();
+          }
+        });
+
+        window.addEventListener('resize', () => {
+          if (state.mode === 'graph') {
+            renderGraph();
+          }
         });
 
         addWeekButton.addEventListener('click', () => {
