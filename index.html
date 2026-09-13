@@ -167,6 +167,19 @@
         letter-spacing: -0.02em;
       }
 
+      .panel-title-line {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .rolling-average {
+        color: var(--accent-dark);
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
       .panel-heading p {
         display: none;
       }
@@ -643,6 +656,12 @@
           align-items: flex-start;
         }
 
+        .panel-title-line {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 2px;
+        }
+
         .save-note {
           margin-top: 3px;
           font-size: 0;
@@ -707,7 +726,10 @@
       <section class="tracker-panel" aria-labelledby="tracker-title">
         <div class="panel-heading">
           <div>
-            <h2 id="tracker-title">Your weeks</h2>
+            <div class="panel-title-line">
+              <h2 id="tracker-title">Your weeks</h2>
+              <span class="rolling-average" id="rolling-average">7-day rolling average: —</span>
+            </div>
           </div>
           <span class="save-note">Saved on this device</span>
         </div>
@@ -787,6 +809,7 @@
         const graphSvg = document.querySelector('#graph-svg');
         const graphYAxis = document.querySelector('#graph-y-axis');
         const graphEmpty = document.querySelector('#graph-empty');
+        const rollingAverage = document.querySelector('#rolling-average');
         const panelFooter = document.querySelector('.panel-footer');
         const addWeekButton = document.querySelector('#add-week');
         const dialog = document.querySelector('#weight-dialog');
@@ -844,6 +867,17 @@
 
         function formatWeight(value) {
           return Number(value).toFixed(2);
+        }
+
+        function getRollingAverage() {
+          const recordedValues = state.weeks.flat().filter((value) => value !== null);
+          const recentValues = recordedValues.slice(-7);
+
+          if (recentValues.length === 0) {
+            return null;
+          }
+
+          return recentValues.reduce((sum, value) => sum + value, 0) / recentValues.length;
         }
 
         function createSvgElement(tagName, attributes = {}) {
@@ -963,16 +997,6 @@
               graphSvg.append(point);
             }
 
-            const xLabel = createSvgElement('text', {
-              x,
-              y: 305,
-              fill: 'var(--muted)',
-              'font-family': 'DM Sans, sans-serif',
-              'font-size': 10,
-              'text-anchor': 'middle',
-            });
-            xLabel.textContent = `W${Math.floor(index / DAYS.length) + 1} ${DAYS[index % DAYS.length].slice(0, 1)}`;
-            graphSvg.append(xLabel);
           });
 
           graphYAxis.replaceChildren();
@@ -1017,9 +1041,13 @@
         function render() {
           const graphActive = state.mode === 'graph';
           const enteringGraph = graphActive && lastRenderedMode !== 'graph';
+          const average = getRollingAverage();
           tableView.hidden = graphActive;
           graphView.hidden = !graphActive;
           panelFooter.hidden = graphActive;
+          rollingAverage.textContent = average === null
+            ? '7-day rolling average: —'
+            : `7-day rolling average: ${formatWeight(average)} kg`;
           trackerBody.replaceChildren();
 
           state.weeks.forEach((week, weekIndex) => {
